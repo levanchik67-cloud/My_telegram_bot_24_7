@@ -8,7 +8,7 @@ import re
 from telegram import Update, ReplyKeyboardMarkup
 from telegram.ext import Application, CommandHandler, MessageHandler, filters, ContextTypes
 
-BOT_TOKEN = "8442410256:AAF8rRzh-MehRWYXMT5qP7q383mOj2woel8"
+BOT_TOKEN = "*"
 ADMIN_CHAT_ID = 5846819259
 CHANNEL_USERNAME = "@eggssssi115"
 
