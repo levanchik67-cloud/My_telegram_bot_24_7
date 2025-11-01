@@ -1,0 +1,60 @@
+name: 🤖 Auto Restart Bot
+
+on:
+  schedule:
+    - cron: '0 3 */5 * *'  # Каждые 5 дней в 03:00 UTC
+  workflow_dispatch:        # Позволяет запускать вручную
+
+jobs:
+  restart-bot:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - name: 🚀 Checkout code
+      uses: actions/checkout@v4
+    
+    - name: 🔑 Get GitHub Token
+      uses: tibdex/github-app-token@v2
+      id: generate-token
+      with:
+        app_id: ${{ secrets.APP_ID }}
+        private_key: ${{ secrets.APP_PRIVATE_KEY }}
+    
+    - name: 🛑 Stop Old Codespaces
+      run: |
+        echo "🛑 Stopping old codespaces..."
+        RESPONSE=$(curl -s -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
+          "https://api.github.com/user/codespaces?per_page=100")
+        
+        # Останавливаем все активные codespaces
+        echo "$RESPONSE" | jq -r '.[] | select(.state == "Available") | .name' | while read name; do
+          echo "🛑 Stopping: $name"
+          curl -s -X POST \
+            -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
+            "https://api.github.com/user/codespaces/$name/stop"
+        done
+        
+        sleep 30  # Ждем остановки
+
+    - name: 🆕 Create New Codespace
+      run: |
+        echo "🚀 Creating new codespace..."
+        REPO_NAME=$(echo "${{ github.repository }}" | cut -d'/' -f2)
+        
+        RESPONSE=$(curl -s -X POST \
+          -H "Authorization: token ${{ steps.generate-token.outputs.token }}" \
+          -H "Content-Type: application/json" \
+          -d "{
+            \"repository\": \"${{ github.repository }}\",
+            \"machine\": \"standardLinux32gb\",
+            \"display_name\": \"Telegram-Bot-$(date +%Y%m%d)\"
+          }" \
+          "https://api.github.com/user/codespaces")
+        
+        echo "✅ Codespace creation response: $RESPONSE"
+        
+    - name: 📝 Status
+      run: |
+        echo "✅ Auto-restart setup completed!"
+        echo "🕐 Next auto-restart in 5 days"
+        echo "🚀 You can also trigger manually in Actions tab"
